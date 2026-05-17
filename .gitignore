@@ -1,0 +1,10 @@
+node_modules
+dist
+examples/sample-site
+.DS_Store
+.env
+.env.*
+!.env.example
+coverage
+.vitest
+*.tsbuildinfo

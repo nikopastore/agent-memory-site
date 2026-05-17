@@ -1,0 +1,21 @@
+{
+  "title": "Agent Memory Site",
+  "source": "./memory",
+  "out": "./dist",
+  "defaultVisibility": "private",
+  "publicExcludesSensitivity": [
+    "personal",
+    "credential",
+    "financial",
+    "medical"
+  ],
+  "categories": [
+    "projects",
+    "people",
+    "decisions",
+    "facts",
+    "daily",
+    "handoffs",
+    "procedures"
+  ]
+}

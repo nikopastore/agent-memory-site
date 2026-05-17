@@ -1,0 +1,21 @@
+# Development and local-only files
+.github/
+node_modules/
+src/
+tests/
+examples/sample-site/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Build/test caches
+coverage/
+.vitest/
+.cache/
+*.tsbuildinfo
+
+# Repository metadata not needed in package
+.git/
+.gitignore

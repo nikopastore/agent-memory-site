@@ -57,7 +57,13 @@ agent-memory serve --out ./site
 
 ## Demo
 
-A polished screenshot/GIF should be added before a broad public launch. The recommended launch demo is:
+![Agent Memory Site dashboard](assets/screenshot-dashboard.png)
+
+![Generated note page](assets/screenshot-note.png)
+
+Live demo target after GitHub Pages is enabled: <https://nikopastore.github.io/agent-memory-site/>
+
+Recommended terminal flow:
 
 ```text
 agent-memory init ./memory
@@ -66,11 +72,7 @@ agent-memory build --source ./memory --out ./site --mode private
 agent-memory serve --out ./site
 ```
 
-Demo assets to add:
-
-- `assets/screenshot-dashboard.png`
-- `assets/screenshot-note.png`
-- `assets/demo.gif` showing init → build → dashboard → chunks
+Optional future demo asset: `assets/demo.gif` showing init → build → dashboard → chunks.
 
 ## What it generates
 

@@ -63,6 +63,7 @@
     "dist",
     "README.md",
     "LICENSE",
+    "assets",
     "docs",
     "templates",
     "examples/sample-vault",

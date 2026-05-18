@@ -1,7 +1,7 @@
 {
   "name": "agent-memory-site",
   "version": "0.1.0",
-  "description": "Turn Markdown agent memory vaults into semantic HTML, search indexes, and retrieval chunks.",
+  "description": "Turn Markdown/Obsidian AI-agent memory vaults into semantic HTML dashboards, search indexes, and retrieval-ready JSONL chunks.",
   "type": "module",
   "bin": {
     "agent-memory": "./dist/cli/index.js"
@@ -12,16 +12,29 @@
     "serve": "node dist/cli/index.js serve --source examples/sample-vault --out examples/sample-site",
     "validate": "tsx src/cli/index.ts validate --source examples/sample-vault",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "ci": "npm run typecheck && npm test && npm run build && npm pack --dry-run"
   },
   "keywords": [
     "ai-agent",
+    "agent-memory",
     "memory",
     "markdown",
-    "html",
+    "obsidian",
+    "semantic-html",
+    "static-site",
+    "static-site-generator",
     "rag",
+    "retrieval",
+    "jsonl",
     "knowledge-base",
-    "obsidian"
+    "llm",
+    "claude",
+    "codex",
+    "local-first",
+    "privacy",
+    "typescript",
+    "developer-tools"
   ],
   "license": "MIT",
   "dependencies": {
@@ -42,5 +55,17 @@
   "bugs": {
     "url": "https://github.com/nikopastore/agent-memory-site/issues"
   },
-  "homepage": "https://github.com/nikopastore/agent-memory-site#readme"
+  "homepage": "https://github.com/nikopastore/agent-memory-site#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "docs",
+    "templates",
+    "examples/sample-vault",
+    "agent-memory.config.json"
+  ]
 }

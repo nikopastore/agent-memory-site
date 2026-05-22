@@ -4,7 +4,7 @@
   "description": "Turn Markdown/Obsidian AI-agent memory vaults into semantic HTML dashboards, search indexes, and retrieval-ready JSONL chunks.",
   "type": "module",
   "bin": {
-    "agent-memory": "./dist/cli/index.js"
+    "agent-memory": "dist/cli/index.js"
   },
   "scripts": {
     "build": "tsc && node dist/cli/index.js build --source examples/sample-vault --out examples/sample-site --mode private",

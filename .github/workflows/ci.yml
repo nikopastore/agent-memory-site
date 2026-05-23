@@ -41,8 +41,32 @@ jobs:
           node dist/cli/index.js new project "Smoke test" --source /tmp/smoke-memory
           node dist/cli/index.js build --source /tmp/smoke-memory --out /tmp/smoke-site --mode public
           node dist/cli/index.js validate --source /tmp/smoke-memory
-      - name: Assert no private leaks in public build
+      - name: Assert no private notes ship in the public manifest
         run: |
-          ! grep -r "visibility: private" /tmp/smoke-site/ || (echo "Private notes leaked to public build" && exit 1)
+          # Inspect manifest metadata, NOT free-text — starter procedure notes
+          # legitimately use the phrase "visibility: private" in prose.
+          node -e "const m=JSON.parse(require('fs').readFileSync('/tmp/smoke-site/manifest.json','utf8'));const leak=m.notes.find(n=>n.visibility==='private'||n.visibility==='team');if(leak){console.error('Private/team note in manifest:',leak);process.exit(1)}console.log('OK: '+m.notes.length+' notes, none private/team')"
+      - name: Plant a private note + rebuild + assert it is excluded
+        run: |
+          mkdir -p /tmp/smoke-memory/projects
+          cat > /tmp/smoke-memory/projects/secret.md <<'NOTE'
+          ---
+          title: "Operation Salted Caramel"
+          visibility: private
+          sensitivity: none
+          ---
+          # Operation Salted Caramel
+          Top secret.
+          NOTE
+          # Reference the private note from the public smoke-test note.
+          echo '' >> /tmp/smoke-memory/projects/smoke-test.md
+          echo 'See [[Operation Salted Caramel]].' >> /tmp/smoke-memory/projects/smoke-test.md
+          node dist/cli/index.js build --source /tmp/smoke-memory --out /tmp/smoke-site --mode public --force
+          # The title MUST NOT appear in any output artifact (incl. HTML, chunks, search-index, llms.txt).
+          if grep -r "Operation Salted Caramel" /tmp/smoke-site/; then
+            echo "Private title leaked through wiki-link in public build"
+            exit 1
+          fi
+          echo "OK: private title fully redacted in public build"
       - name: CLI version smoke
         run: node dist/cli/index.js --version

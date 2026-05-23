@@ -30,7 +30,7 @@ jobs:
       - name: Assert demo manifest excludes private notes
         run: |
           ! grep -E '"visibility":\s*"(private|team)"' examples/sample-site/manifest.json || (echo "Private/team note leaked into public Pages build" && exit 1)
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v3
         with:
           path: examples/sample-site

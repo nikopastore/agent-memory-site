@@ -1,8 +1,10 @@
 {
   "title": "Agent Memory Site",
   "source": "./memory",
-  "out": "./dist",
-  "defaultVisibility": "private",
+  "out": "./site",
+  "defaultMode": "private",
+  "baseUrl": "https://nikopastore.github.io/agent-memory-site",
+  "description": "Compile your Markdown vault into a portable agent memory.",
   "publicExcludesSensitivity": [
     "personal",
     "credential",

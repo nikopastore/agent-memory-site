@@ -1,23 +1,38 @@
 {
   "name": "agent-memory-site",
-  "version": "0.1.0",
-  "description": "Turn Markdown/Obsidian AI-agent memory vaults into semantic HTML dashboards, search indexes, and retrieval-ready JSONL chunks.",
+  "version": "0.2.0",
+  "description": "Compile your Markdown vault into a portable agent memory. One build, every agent: Claude, Codex, Cursor, MCP, llms.txt.",
   "type": "module",
   "bin": {
     "agent-memory": "dist/cli/index.js"
   },
   "scripts": {
-    "build": "tsc && node dist/cli/index.js build --source examples/sample-vault --out examples/sample-site --mode private",
-    "dev": "tsx src/cli/index.ts serve --source examples/sample-vault --out examples/sample-site",
-    "serve": "node dist/cli/index.js serve --source examples/sample-vault --out examples/sample-site",
+    "build": "tsc && node dist/cli/index.js build --source examples/sample-vault --out examples/sample-site --mode private --force",
+    "build:demo": "tsc && node dist/cli/index.js build --source examples/sample-vault --out examples/sample-site --mode public --force --base-url https://nikopastore.github.io/agent-memory-site",
+    "dev": "tsx src/cli/index.ts serve --out examples/sample-site --no-open",
+    "serve": "node dist/cli/index.js serve --out examples/sample-site --no-open",
     "validate": "tsx src/cli/index.ts validate --source examples/sample-vault",
+    "publish-check": "tsx src/cli/index.ts publish-check --source examples/sample-vault --out examples/sample-site",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "ci": "npm run typecheck && npm test && npm run build && npm pack --dry-run"
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "ci": "npm run typecheck && npm test && npm run build && npm pack --dry-run",
+    "prepublishOnly": "npm run ci"
   },
   "keywords": [
-    "ai-agent",
     "agent-memory",
+    "mcp",
+    "mcp-server",
+    "agents-md",
+    "llms-txt",
+    "claude",
+    "claude-code",
+    "codex",
+    "cursor",
+    "cursor-rules",
+    "copilot",
+    "ai-agent",
     "memory",
     "markdown",
     "obsidian",
@@ -29,8 +44,6 @@
     "jsonl",
     "knowledge-base",
     "llm",
-    "claude",
-    "codex",
     "local-first",
     "privacy",
     "typescript",
@@ -38,12 +51,17 @@
   ],
   "license": "MIT",
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "commander": "^12.1.0",
     "gray-matter": "^4.0.3",
-    "marked": "^12.0.2"
+    "js-yaml": "^4.1.1",
+    "marked": "^15.0.12",
+    "open": "^10.2.0"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.12.12",
+    "prettier": "^3.8.3",
     "tsx": "^4.19.2",
     "typescript": "^5.4.5",
     "vitest": "^1.6.0"
@@ -63,6 +81,8 @@
     "dist",
     "README.md",
     "LICENSE",
+    "SECURITY.md",
+    "CHANGELOG.md",
     "assets",
     "docs",
     "templates",

@@ -1,0 +1,9 @@
+# Default owners for everything in the repo.
+# These users will be requested for review when a PR is opened.
+*       @nikopastore
+
+# Anything touching privacy / security needs a hard look.
+/src/build/privacy.ts   @nikopastore
+/src/build/safety.ts    @nikopastore
+/src/ingest/markdown.ts @nikopastore
+SECURITY.md             @nikopastore

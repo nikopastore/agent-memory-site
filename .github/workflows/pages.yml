@@ -31,7 +31,7 @@ jobs:
         run: |
           ! grep -E '"visibility":\s*"(private|team)"' examples/sample-site/manifest.json || (echo "Private/team note leaked into public Pages build" && exit 1)
       - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: examples/sample-site
 

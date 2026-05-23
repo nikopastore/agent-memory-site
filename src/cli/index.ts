@@ -14,6 +14,13 @@ program
   .description('Generate semantic HTML and retrieval chunks from Markdown agent memory vaults')
   .version('0.1.0');
 
+function safeSegment(value: string, label: string) {
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(value)) {
+    throw new Error(`Invalid ${label}: use only letters, numbers, dashes, and underscores.`);
+  }
+  return value;
+}
+
 program.command('init [dir]').action((dir = 'memory') => {
   fs.mkdirSync(dir, { recursive: true });
   for (const sub of ['projects', 'people', 'decisions', 'facts', 'daily', 'handoffs', 'procedures']) {
@@ -108,20 +115,21 @@ program
         res.end('Bad request');
       }
     });
-    server.listen(Number(o.port), () => console.log(`Serving ${root} on http://localhost:${o.port}`));
+    server.listen(Number(o.port), '127.0.0.1', () => console.log(`Serving ${root} on http://127.0.0.1:${o.port}`));
   });
 
 program
   .command('new <type> <title>')
   .option('-s, --source <dir>', 'source', 'memory')
   .action((type, title, o) => {
-    const dir = path.join(o.source, type.endsWith('s') ? type : type + 's');
+    const safeType = safeSegment(type, 'type');
+    const dir = path.join(o.source, safeType.endsWith('s') ? safeType : safeType + 's');
     fs.mkdirSync(dir, { recursive: true });
     const slug = title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
-    const body = `---\ntitle: "${title}"\ntype: ${type}\nstatus: active\nvisibility: private\nsensitivity: none\ntags: [${type}]\ndate: ${new Date().toISOString().slice(0, 10)}\n---\n\n# ${title}\n\n## Summary\n\n## Notes\n`;
+    const body = `---\ntitle: "${title}"\ntype: ${safeType}\nstatus: active\nvisibility: private\nsensitivity: none\ntags: [${safeType}]\ndate: ${new Date().toISOString().slice(0, 10)}\n---\n\n# ${title}\n\n## Summary\n\n## Notes\n`;
     fs.writeFileSync(path.join(dir, slug + '.md'), body);
     console.log(`Created ${path.join(dir, slug + '.md')}`);
   });

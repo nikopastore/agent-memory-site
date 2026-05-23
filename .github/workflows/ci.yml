@@ -6,10 +6,12 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         node-version: [20, 22]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,3 +23,26 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npm pack --dry-run
+
+  smoke:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build a fresh demo site
+        run: |
+          npx tsc
+          node dist/cli/index.js init /tmp/smoke-memory
+          node dist/cli/index.js new project "Smoke test" --source /tmp/smoke-memory
+          node dist/cli/index.js build --source /tmp/smoke-memory --out /tmp/smoke-site --mode public
+          node dist/cli/index.js validate --source /tmp/smoke-memory
+      - name: Assert no private leaks in public build
+        run: |
+          ! grep -r "visibility: private" /tmp/smoke-site/ || (echo "Private notes leaked to public build" && exit 1)
+      - name: CLI version smoke
+        run: node dist/cli/index.js --version

@@ -1,218 +1,263 @@
 # Agent Memory Site
 
-**Turn Markdown/Obsidian AI-agent memory vaults into private semantic dashboards, searchable indexes, and retrieval-ready JSONL chunks.**
+**Compile your Markdown vault into a portable agent memory. One build, every agent: Claude, Codex, Cursor, MCP, llms.txt.**
 
-> Markdown is the database. Semantic HTML is the interface. JSONL is the retrieval layer.
+> The Pandoc of agent memory — Markdown is the database, semantic HTML is the human interface, JSONL is the retrieval layer, MCP is the runtime.
 
 [![CI](https://github.com/nikopastore/agent-memory-site/actions/workflows/ci.yml/badge.svg)](https://github.com/nikopastore/agent-memory-site/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178c6.svg)](https://www.typescriptlang.org/)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen.svg)](package.json)
 
-Agent Memory Site is a local-first CLI for people building with Claude, Codex, AI agents, Obsidian, Tolaria, and Markdown knowledge bases. It compiles your human-editable memory notes into a browser dashboard plus machine-readable artifacts that agents and RAG pipelines can retrieve with provenance.
+`agent-memory-site` is a local-first CLI that turns a directory of Markdown notes into:
+
+1. A **private, browsable dashboard** with real client-side search.
+2. **Retrieval-ready JSONL chunks** with stable IDs, content hashes, and provenance — ready for any RAG pipeline.
+3. **A live MCP server** any agent can attach to (Claude Desktop, Claude Code, Codex CLI, Cursor, Continue, …).
+4. **All the agent-context files at once**: `AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `copilot-instructions.md`, `llms.txt`, `llms-full.txt`, `/.well-known/agent-card.json`.
+
+No service to sign up for. No editor lock-in. No competing format. The vault is just Markdown.
+
+## The 90-second demo
+
+```bash
+npx agent-memory-site init ./memory
+npx agent-memory-site build --source ./memory --out ./site --mode private
+claude mcp add agent-memory "npx agent-memory-site mcp --site ./site"
+```
+
+Now Claude knows everything in your notes. Same bundle works for Codex (`codex mcp add ...`), Cursor (`.cursor/mcp.json`), and any other MCP client. Local-first, privacy-aware, no service to sign up for.
 
 ## Why it exists
 
-Markdown is still the best source format for humans and Git: easy to write, diff, review, and edit with AI. But semantic HTML is a better compiled interface for browser agents and retrieval because it gives stable structure: `<article>`, `<section>`, metadata, backlinks, and explicit index/no-index regions.
+Markdown is the best source format for humans and Git: easy to write, diff, review, and edit with AI. But every agent reads it differently. So you end up writing the same context three times — once for `AGENTS.md`, once for `CLAUDE.md`, once for `.cursorrules` — and your RAG pipeline still doesn't know about any of it.
 
-Agent Memory Site helps you:
+`agent-memory-site` solves the duplication. **One vault → one build → every agent reads the same thing.**
 
-- Browse a memory vault without opening Obsidian.
-- Generate a static dashboard for private or team use.
-- Export `search-index.json`, `manifest.json`, and `chunks.jsonl` for retrieval.
-- Keep public exports safer with visibility/sensitivity frontmatter and validation.
-- Preserve source paths, note IDs, categories, tags, backlinks, and chunk provenance.
+## What it does (and doesn't) compete with
 
-## Quick start
+| Tool | What it does | What it's missing for agent memory |
+|---|---|---|
+| **[Quartz](https://quartz.jzhao.xyz/)**, **[Obsidian Digital Garden](https://github.com/oleeskild/obsidian-digital-garden)** | Publish a Markdown vault as a beautiful site **for humans** | No JSONL retrieval, no MCP, no privacy modes, no agent-context fan-out |
+| **Obsidian Publish**, **[Mintlify](https://mintlify.com/)** | Hosted SaaS publishing | Closed, paid; per-vault lock-in; not agent-portable |
+| **[Letta](https://docs.letta.com/) / [MemGPT](https://github.com/cpacker/MemGPT) / [Mem0](https://mem0.ai/)** | Agent memory frameworks with their own schemas | Heavyweight runtimes; format-locked; no human-readable export |
+| **[MCPVault](https://medium.com/@ai_transfer_lab/mcpvault-...)**, **[mcp-memory-service](https://github.com/doobidoo/mcp-memory-service)** | Live MCP server over a vault | Editor / computer must be running; not portable; can't hand off the bundle |
+| **agent-memory-site** | Compiles vault → HTML + JSONL + MCP + AGENTS.md + llms.txt | _is this thing_ |
 
-```bash
-git clone https://github.com/nikopastore/agent-memory-site.git
-cd agent-memory-site
-npm install
-npm run build
-npm run serve
-```
+If you want **live editing in Obsidian piped into Claude**, use MCPVault. If you want **a single bundle you can ship, share, snapshot, and feed every agent**, use this.
 
-Open <http://localhost:4321>.
-
-Or use the CLI after building:
-
-```bash
-npm run build
-node dist/cli/index.js init ./my-memory
-node dist/cli/index.js new project "Launch Plan" --source ./my-memory
-node dist/cli/index.js validate --source ./my-memory
-node dist/cli/index.js build --source ./my-memory --out ./site --mode private
-node dist/cli/index.js serve --out ./site
-```
-
-When published to npm, the intended usage is:
+## Install
 
 ```bash
 npm install -g agent-memory-site
-agent-memory init ./my-memory
-agent-memory build --source ./my-memory --out ./site --mode private
-agent-memory serve --out ./site
+# or run without installing:
+npx agent-memory-site --help
 ```
 
-## Demo
+Requires Node 20+. Pure local — no telemetry, no network calls, no `postinstall` scripts.
 
-![Agent Memory Site dashboard](assets/screenshot-dashboard.png)
-
-![Generated note page](assets/screenshot-note.png)
-
-Live demo target after GitHub Pages is enabled: <https://nikopastore.github.io/agent-memory-site/>
-
-Recommended terminal flow:
+## Commands at a glance
 
 ```text
-agent-memory init ./memory
-agent-memory new decision "Use semantic HTML for memory exports"
-agent-memory build --source ./memory --out ./site --mode private
-agent-memory serve --out ./site
+agent-memory init [dir]                       # scaffold a starter vault
+agent-memory new <type> <title> [--source]    # scaffold a single note
+agent-memory build --source --out --mode      # compile vault → site
+agent-memory serve --out [--port] [--no-open] # local HTTP on 127.0.0.1
+agent-memory validate --source [--json] [--strict]
+agent-memory publish-check --source --out     # pre-publish gate
+agent-memory stats --source                   # counts + health
+agent-memory emit --target <target...> --source --out
+agent-memory mcp --site <dir>                 # run as MCP server (stdio)
 ```
 
-Optional future demo asset: `assets/demo.gif` showing init → build → dashboard → chunks.
+Every command prints a "Next steps" hint block. Every command works on Windows, macOS, and Linux.
 
-## What it generates
-
-- `index.html` dashboard
-- category pages for projects, people, decisions, facts, daily logs, handoffs, and procedures
-- semantic note pages with backlinks
-- `search-index.json` for keyword/metadata lookup
-- `manifest.json` with generated note inventory
-- `chunks.jsonl` with stable chunk IDs and provenance
-
-Example generated chunk:
-
-```json
-{
-  "chunk_id": "projects/launch-plan#launch-plan",
-  "doc_id": "projects/launch-plan",
-  "title": "Launch Plan",
-  "heading_path": ["Launch Plan"],
-  "text": "...",
-  "html": "<section>...</section>",
-  "source_path": "projects/launch-plan.md"
-}
-```
-
-## CLI reference
-
-```bash
-agent-memory init [dir]
-```
-
-Create a starter memory vault.
-
-```bash
-agent-memory new <type> <title> --source ./memory
-```
-
-Create a new note under a typed folder such as `projects`, `decisions`, `facts`, `people`, `handoffs`, or `procedures`.
-
-```bash
-agent-memory validate --source ./memory
-```
-
-Warn on missing metadata, likely secrets, oversized notes, and broken wiki links.
+### `agent-memory build`
 
 ```bash
 agent-memory build --source ./memory --out ./site --mode private
 ```
-
-Build a static dashboard and retrieval artifacts.
 
 Modes:
 
-- `private`: include all parsed notes.
-- `public`: exclude `visibility: private|team` and sensitive notes.
-- `redacted`: include notes but redact common emails/tokens/secrets best-effort.
+- `private` — include all parsed notes (default).
+- `public` — exclude `visibility: private|team` and `sensitivity: personal|credential|financial|medical`.
+- `redacted` — include the notes but redact emails, common API-key shapes, JWTs, bearer tokens.
+
+Flags:
+
+- `--strict-redact` — also redact phones, IPv4, credit-card-shaped digits.
+- `--base-url <url>` — for canonical / OG / Twitter card tags.
+- `--dry-run` — plan only; don't write files.
+- `--force` — overwrite a non-empty output directory even if it lacks the `.agent-memory-output` marker.
+
+### `agent-memory mcp` — the killer feature
 
 ```bash
-agent-memory serve --out ./site --port 4321
+agent-memory mcp --site ./site
 ```
 
-Serve generated static files locally.
+Runs an MCP server over stdio that exposes a compiled site as four agent-callable tools:
 
-## Recommended vault structure
+- `search_memory(query, type?, tag?, limit?)`
+- `get_note(id)`
+- `list_recent(limit?, type?)`
+- `list_categories()`
+
+Wire it into any MCP client:
+
+```bash
+# Claude Code / Claude Desktop
+claude mcp add agent-memory "agent-memory mcp --site /absolute/path/to/site"
+
+# Codex CLI
+codex mcp add agent-memory --command "agent-memory" --args "mcp --site /absolute/path/to/site"
+
+# Cursor — add to .cursor/mcp.json
+{
+  "mcpServers": {
+    "agent-memory": { "command": "agent-memory", "args": ["mcp", "--site", "./site"] }
+  }
+}
+```
+
+### `agent-memory emit` — one vault, every format
+
+```bash
+agent-memory emit --target all --source ./memory --out .
+# Writes:
+#   AGENTS.md
+#   CLAUDE.md
+#   .cursorrules
+#   .github/copilot-instructions.md
+#   .windsurfrules
+#   .aider.conf.yml
+#   llms.txt
+#   llms-full.txt
+```
+
+Or pick a subset: `--target agents.md claude.md cursorrules`.
+
+## What `build` generates
+
+```
+site/
+├── index.html                 — dashboard with live search
+├── 404.html
+├── favicon.svg
+├── notes/<slug>.html          — one page per note, semantic HTML + backlinks
+├── <category>.html            — one page per category
+├── chunks.jsonl               — RAG-ready chunks with provenance
+├── search-index.json          — keyword/metadata index (always redacted)
+├── manifest.json              — note inventory (source paths omitted in public/redacted)
+├── llms.txt                   — Anthropic-spec agent index
+├── llms-full.txt              — full-text mirror
+├── AGENTS.md                  — Linux-Foundation agent-context standard
+├── .well-known/
+│   └── agent-card.json        — agent capability descriptor
+├── assets/
+│   ├── style.css
+│   ├── search.js
+│   └── copy.js
+└── .agent-memory-output       — safety marker for safe re-builds
+```
+
+Each chunk looks like:
+
+```json
+{
+  "chunk_id": "projects/launch-project#goal",
+  "doc_id": "projects/launch-project",
+  "title": "Launch Project",
+  "heading_path": ["Launch Project", "Goal"],
+  "type": "project",
+  "text": "Ship agent-memory-site 0.2 with a built-in MCP server …",
+  "source_path": "projects/launch-project.md",
+  "canonical_url": "notes/projects-launch-project.html",
+  "tags": ["project", "launch"],
+  "tokens": 27,
+  "content_hash": "fa12d8e7c1a3",
+  "visibility": "public",
+  "updated": "2026-05-22T10:14:00.000Z"
+}
+```
+
+## Privacy model
+
+Every note can opt into a privacy class via frontmatter:
+
+```yaml
+---
+visibility: public | private | team
+sensitivity: none | personal | credential | financial | medical
+redact: ['Project Codename Alpha', 'staging.internal']
+---
+```
+
+The build enforces:
+
+- Wiki-link resolution happens **after** privacy filtering. If a public note links to `[[Private Codename]]`, the link collapses to `[redacted-link]` — the title never appears.
+- The search index strips emails / secret patterns regardless of build mode.
+- The manifest does not ship source file paths in `public` or `redacted` modes.
+- Markdown link URLs are restricted to `https?:`, `mailto:`, `tel:`, `#`, and relative paths. `javascript:` is rewritten to `#blocked`.
+- Every page sets a strict `Content-Security-Policy` (no inline scripts, no `<script>` from third-party origins).
+
+> **Redaction is best-effort, not a guarantee.** Use `agent-memory publish-check` before pushing anything public. Use an external scanner (Gitleaks / TruffleHog) for high-stakes deploys. See [SECURITY.md](SECURITY.md) for the threat model.
+
+## Recommended vault layout
 
 ```text
 memory/
-  MEMORY.md
-  projects/
-  people/
-  decisions/
-  facts/
-  daily/
-  handoffs/
-  procedures/
+  MEMORY.md             # top-level summary; every agent reads this first
+  projects/             # active work
+  decisions/            # decisions + reasoning
+  facts/                # things an agent should never re-derive
+  people/               # collaborators + context
+  daily/                # daily logs / standups
+  handoffs/             # session-to-session continuity
+  procedures/           # repeatable workflows
 ```
 
-Recommended frontmatter:
+`agent-memory init` scaffolds this structure plus a starter set of example notes (use `--bare` for the old empty behavior).
 
-```yaml
----
-title: Launch Plan
-type: project
-status: active
-visibility: private
-sensitivity: none
-tags: [launch, ai-agent]
-date: 2026-05-17
----
+## Configuration
+
+Drop an `agent-memory.config.json` at the project root to override defaults:
+
+```json
+{
+  "title": "My Agent Memory",
+  "source": "./memory",
+  "out": "./site",
+  "defaultMode": "private",
+  "baseUrl": "https://yourname.github.io/my-memory",
+  "description": "Compiled agent memory for X.",
+  "redact": ["ProjectAtlas"]
+}
 ```
-
-## Privacy by default
-
-Frontmatter supports:
-
-```yaml
-visibility: public|private|team
-sensitivity: none|personal|credential|financial|medical
-```
-
-`--mode public` excludes private/team notes and sensitive notes by default. `validate` warns on likely API keys, tokens, credentials, oversized notes, missing frontmatter, and broken wiki links.
-
-**Important:** redaction and validation are best-effort. Do not store real secrets in memory notes. Before publishing a generated site, inspect `site/`, `search-index.json`, `manifest.json`, and `chunks.jsonl` manually and run a secret scanner such as Gitleaks or TruffleHog.
-
-See [docs/privacy.md](docs/privacy.md) and [docs/publishing.md](docs/publishing.md).
 
 ## How this complements Tolaria / Obsidian
 
-Use Tolaria or Obsidian to write and maintain Markdown. Use Agent Memory Site to publish a static local dashboard and agent-readable retrieval artifacts. It is not trying to replace your note editor.
-
-## SEO and public launch checklist
-
-Before making a repo/site public:
-
-- [ ] Add real dashboard and note screenshots.
-- [ ] Add a short GIF demo above the fold.
-- [ ] Confirm `npm run ci` passes.
-- [ ] Run `agent-memory validate --source ./memory`.
-- [ ] Review generated HTML, JSON, and JSONL outputs.
-- [ ] Run an external secret scanner on source and generated output.
-- [ ] Add GitHub topics: `ai-agent`, `agent-memory`, `obsidian`, `markdown`, `rag`, `semantic-html`, `knowledge-base`, `local-first`, `static-site-generator`, `llm`, `claude`, `codex`, `developer-tools`, `typescript`.
-- [ ] Enable GitHub Discussions if you can support community questions.
-- [ ] Publish a demo page and add it as the GitHub website URL.
+Use Tolaria, Obsidian, Logseq, or your editor of choice to write and maintain Markdown. Use agent-memory-site to compile a portable bundle every agent can read. It is not trying to replace your note editor — it's the build step between your vault and your agents.
 
 ## Roadmap
 
-- richer public demo and screenshots
-- hosted GitHub Pages example
-- sitemap/robots/Open Graph generation
-- stronger schema validation for frontmatter
-- `publish-check` command with stricter privacy checks
-- import/export adapters for common agent memory layouts
-- embedding-ready chunk metadata and cookbook examples
+- Local embeddings via `--embed` (in-process WASM by default; `--embed-provider ollama|openai|gemini` for power users)
+- Adapters: `--export-to mem0 | letta | codex-memories | openai-memory`
+- `agent-memory watch` — incremental rebuild + MCP hot-reload
+- Starter packs gallery: `agent-memory init --template job-hunt-agent | paper-trading-bot | research-assistant`
+- Graph view (cytoscape over `manifest.json`)
+- VS Code / Cursor extension that auto-builds on save and points the editor's agent at the bundle
+
+See [CHANGELOG.md](CHANGELOG.md) for what landed in 0.2.
 
 ## Contributing
 
-Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), run `npm run ci`, and open a focused PR.
+Contributions welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), run `npm run ci`, open a focused PR.
 
 ## Security
 
-For vulnerability reports and privacy guidance, see [SECURITY.md](SECURITY.md).
+For vulnerability reports, see [SECURITY.md](SECURITY.md) or open a private security advisory.
 
 ## License
 

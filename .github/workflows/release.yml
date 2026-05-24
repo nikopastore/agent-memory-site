@@ -11,7 +11,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write # for `gh release create`
   id-token: write # for `npm publish --provenance`
 
 jobs:

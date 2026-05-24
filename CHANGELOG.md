@@ -14,8 +14,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 - **"Use cases" table** in README — 8 concrete scenarios.
 - **Ecosystem narrative** — first repo in a planned family (`agent-memory-lint`, `-sync`, `-template`, `-bench`).
 - **Security/privacy issue template** ([`.github/ISSUE_TEMPLATE/security_or_privacy.yml`](.github/ISSUE_TEMPLATE/security_or_privacy.yml)) for non-vulnerability design concerns.
-- **LAUNCH.md** — internal launch artifacts (Show HN draft, Twitter thread, LinkedIn post, resume bullets).
-- **`docs/og-image-prompt.md`** — prompt for regenerating the social-preview image via any text-to-image model.
+- **Custom social preview image** (`assets/social-preview.png`) ready for GitHub repo settings upload.
 
 ### Changed
 

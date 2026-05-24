@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nikopastore.github.io/agent-memory-site/schemas/manifest.schema.json",
+  "title": "agent-memory-site manifest",
+  "description": "Note inventory for a built site. Emitted to manifest.json at the output root.",
+  "type": "object",
+  "required": ["generator", "version", "generated_at", "mode", "title", "count", "chunks", "notes"],
+  "additionalProperties": false,
+  "properties": {
+    "generator": {
+      "const": "agent-memory-site",
+      "description": "Always the literal string `agent-memory-site`."
+    },
+    "version": {
+      "type": "string",
+      "description": "Version of the agent-memory-site CLI that produced this manifest."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 build time."
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["private", "public", "redacted"],
+      "description": "Build mode used."
+    },
+    "title": {
+      "type": "string",
+      "description": "Site title (from --title flag or agent-memory.config.json)."
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of notes visible in this build (post-privacy filter)."
+    },
+    "chunks": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of chunks in chunks.jsonl."
+    },
+    "notes": {
+      "type": "array",
+      "description": "One entry per visible note.",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "path", "category", "content_hash"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "description": "Slug-form note id." },
+          "title": { "type": "string", "description": "Note title (already redacted in --mode redacted)." },
+          "path": { "type": "string", "pattern": "^notes/[a-z0-9-]+\\.html$" },
+          "category": { "type": "string", "description": "First path segment of the source location (projects, decisions, ...)." },
+          "updated": { "type": "string", "format": "date-time" },
+          "content_hash": { "type": "string", "pattern": "^[0-9a-f]{8,64}$" },
+          "source": {
+            "type": "string",
+            "description": "Forward-slash relative source path within the vault. Present only in --mode private."
+          }
+        }
+      }
+    }
+  }
+}

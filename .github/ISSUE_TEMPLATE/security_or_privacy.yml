@@ -1,0 +1,41 @@
+name: Security or privacy concern (non-vulnerability)
+description: Something feels off about how memory is handled, redacted, or exposed — but it's NOT an active vulnerability.
+title: "[security] "
+labels: ["security", "privacy"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > **If you've found an actual vulnerability** (e.g. a way for a public build to leak private data), please don't open a public issue.
+        > Use a [private security advisory](https://github.com/nikopastore/agent-memory-site/security/advisories/new) or email **nikopastore@gmail.com** instead.
+        >
+        > This template is for design/posture concerns where public discussion is appropriate.
+  - type: textarea
+    id: concern
+    attributes:
+      label: The concern
+      description: What feels wrong or risky?
+      placeholder: |
+        Example: `manifest.json` includes the `source` field in `--mode redacted`. The path itself could be a codename.
+    validations: { required: true }
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Plausible exploit / leak scenario
+      description: Walk through a realistic situation where this becomes a real problem.
+      placeholder: |
+        A team using --mode redacted to ship docs publicly. Their internal projects use codenames as folder names.
+        Even though note bodies are redacted, the folder name "projects/operation-x/" leaks via manifest.json source paths.
+    validations: { required: true }
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed fix (if any)
+      description: How would you address it?
+    validations: { required: false }
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Your read on severity
+      options: [low, medium, high]
+    validations: { required: true }

@@ -3,6 +3,30 @@
 All notable changes to **agent-memory-site** are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [SemVer](https://semver.org/).
 
+## [0.3.0] - 2026-05-24
+
+### Added
+
+- **Sitemap.xml + robots.txt + RSS** auto-generated at build (`feed.xml`). Points crawlers at `llms.txt` for AI discovery.
+- **JSON Schemas** for `chunks.jsonl` and `manifest.json` under [`docs/schemas/`](docs/schemas/). Downstream consumers can validate against these.
+- **Cookbook** under [`docs/cookbook/`](docs/cookbook/) — wiring recipes for Claude Code / Cursor / Codex / LangChain / LlamaIndex / Mem0 / Letta / OpenAI Memory / GitHub Action.
+- **Mermaid architecture diagram** in README and [docs/architecture.md](docs/architecture.md).
+- **"Use cases" table** in README — 8 concrete scenarios.
+- **Ecosystem narrative** — first repo in a planned family (`agent-memory-lint`, `-sync`, `-template`, `-bench`).
+- **Security/privacy issue template** ([`.github/ISSUE_TEMPLATE/security_or_privacy.yml`](.github/ISSUE_TEMPLATE/security_or_privacy.yml)) for non-vulnerability design concerns.
+- **LAUNCH.md** — internal launch artifacts (Show HN draft, Twitter thread, LinkedIn post, resume bullets).
+- **`docs/og-image-prompt.md`** — prompt for regenerating the social-preview image via any text-to-image model.
+
+### Changed
+
+- **Sample vault completely redone** as a realistic AI-ops scenario (customer-support-agent, data-pipeline-refactor, incident-response-handoff, weekly-review, redaction-patterns, frontend-handoff, plus an intentionally-private contractor note). The live demo at <https://nikopastore.github.io/agent-memory-site/> now shows what an actual agent operating system looks like compiled.
+- **Demo Pages build** now ships 11 notes / 49 chunks (was 6/12).
+- **Refreshed screenshots** in README from the new demo.
+
+### Internal
+
+- Demo build's `publish-check` runs in CI on every Pages deploy.
+
 ## [0.2.0] - 2026-05-23
 
 ### Added — strategic

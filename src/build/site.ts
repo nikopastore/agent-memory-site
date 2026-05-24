@@ -254,6 +254,9 @@ export function buildSite(notes: Note[], out: string, modeOrOptions: BuildMode |
   writeLlmsFull(safeOut, resolved);
   writeAgentCard(safeOut, resolved, siteTitle, options);
   writeAgentsMd(safeOut, resolved, siteTitle, options);
+  writeSitemap(safeOut, resolved, byCat, options);
+  writeRobotsTxt(safeOut, options);
+  writeRssFeed(safeOut, resolved, siteTitle, options);
 
   // 11. Static assets.
   fs.writeFileSync(path.join(safeOut, 'assets', 'style.css'), CSS);
@@ -343,6 +346,77 @@ function writeAgentsMd(out: string, notes: Note[], siteTitle: string, options: B
   lines.push('');
   lines.push(`## Note count: ${notes.length}`);
   fs.writeFileSync(path.join(out, 'AGENTS.md'), lines.join('\n'));
+}
+
+function writeSitemap(out: string, notes: Note[], byCat: Map<string, Note[]>, options: BuildOptions): void {
+  const base = (options.baseUrl || '').replace(/\/$/, '');
+  // If no baseUrl, emit relative-URL sitemap (still valid per spec for some crawlers).
+  const u = (p: string): string => (base ? `${base}/${p}` : p);
+  const today = new Date().toISOString().slice(0, 10);
+  const urls: { loc: string; lastmod?: string; priority?: string }[] = [];
+  urls.push({ loc: u('index.html'), lastmod: today, priority: '1.0' });
+  for (const cat of byCat.keys()) urls.push({ loc: u(`${cat}.html`), lastmod: today, priority: '0.7' });
+  for (const n of notes) urls.push({ loc: u(`notes/${n.slug}.html`), lastmod: (n.updated_at || '').slice(0, 10) || today, priority: '0.6' });
+  urls.push({ loc: u('llms.txt'), lastmod: today, priority: '0.4' });
+  urls.push({ loc: u('llms-full.txt'), lastmod: today, priority: '0.4' });
+  const body =
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+    urls
+      .map(
+        (e) =>
+          `  <url><loc>${escapeXml(e.loc)}</loc>${e.lastmod ? `<lastmod>${e.lastmod}</lastmod>` : ''}${e.priority ? `<priority>${e.priority}</priority>` : ''}</url>`,
+      )
+      .join('\n') +
+    `\n</urlset>\n`;
+  fs.writeFileSync(path.join(out, 'sitemap.xml'), body);
+}
+
+function writeRobotsTxt(out: string, options: BuildOptions): void {
+  const base = (options.baseUrl || '').replace(/\/$/, '');
+  const lines = [
+    'User-agent: *',
+    'Allow: /',
+    base ? `Sitemap: ${base}/sitemap.xml` : 'Sitemap: sitemap.xml',
+    '',
+    '# Agent-friendly: also see /llms.txt and /AGENTS.md',
+  ];
+  fs.writeFileSync(path.join(out, 'robots.txt'), lines.join('\n'));
+}
+
+function writeRssFeed(out: string, notes: Note[], siteTitle: string, options: BuildOptions): void {
+  const base = (options.baseUrl || '').replace(/\/$/, '');
+  const link = base || '';
+  const sorted = [...notes].sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
+  const items = sorted.slice(0, 50).map((n) => {
+    const url = base ? `${base}/notes/${n.slug}.html` : `notes/${n.slug}.html`;
+    const pub = n.updated_at ? new Date(n.updated_at).toUTCString() : new Date().toUTCString();
+    const desc = (n.text || '').slice(0, 280);
+    return [
+      '    <item>',
+      `      <title>${escapeXml(n.title)}</title>`,
+      `      <link>${escapeXml(url)}</link>`,
+      `      <guid isPermaLink="false">${escapeXml(n.id)}</guid>`,
+      `      <pubDate>${pub}</pubDate>`,
+      `      <category>${escapeXml(n.category)}</category>`,
+      `      <description>${escapeXml(desc)}</description>`,
+      '    </item>',
+    ].join('\n');
+  });
+  const body =
+    `<?xml version="1.0" encoding="UTF-8"?>\n` +
+    `<rss version="2.0">\n  <channel>\n` +
+    `    <title>${escapeXml(siteTitle)}</title>\n` +
+    `    <link>${escapeXml(link || 'about:blank')}</link>\n` +
+    `    <description>${escapeXml(options.description || 'Compiled by agent-memory-site')}</description>\n` +
+    `    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>\n` +
+    `    <generator>agent-memory-site ${readVersion()}</generator>\n` +
+    items.join('\n') +
+    `\n  </channel>\n</rss>\n`;
+  fs.writeFileSync(path.join(out, 'feed.xml'), body);
+}
+
+function escapeXml(s: string): string {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[c]!);
 }
 
 function groupBy<T>(arr: T[], fn: (x: T) => string): Map<string, T[]> {

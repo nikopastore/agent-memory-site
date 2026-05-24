@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nikopastore.github.io/agent-memory-site/schemas/chunk.schema.json",
+  "title": "agent-memory-site chunk",
+  "description": "One retrieval-ready chunk emitted into chunks.jsonl. Stable across reorders; provenance preserved end-to-end.",
+  "type": "object",
+  "required": [
+    "chunk_id",
+    "doc_id",
+    "title",
+    "heading_path",
+    "type",
+    "text",
+    "html",
+    "source_path",
+    "canonical_url",
+    "tags",
+    "tokens",
+    "content_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "chunk_id": {
+      "type": "string",
+      "description": "Stable identifier: <doc_id>#<heading-slug>. Reordering the source note does NOT change this id.",
+      "pattern": "^[a-z0-9][a-z0-9/-]*#[a-z0-9-]+$",
+      "examples": ["projects/customer-support-agent#status"]
+    },
+    "doc_id": {
+      "type": "string",
+      "description": "Slug-form id of the source note. Matches the note's filename without extension."
+    },
+    "title": {
+      "type": "string",
+      "description": "Title of the source note (already redacted in --mode redacted)."
+    },
+    "heading_path": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Breadcrumb of headings for this chunk. Starts with the note title, ends with the section heading. Consecutive duplicates are collapsed."
+    },
+    "type": {
+      "type": "string",
+      "description": "Note type (project | decision | procedure | fact | person | handoff | daily | instruction | ...)."
+    },
+    "text": {
+      "type": "string",
+      "description": "Plain-text body of the chunk. Code fences stripped; markdown punctuation normalized to whitespace. Already redacted in --mode redacted."
+    },
+    "html": {
+      "type": "string",
+      "description": "Self-contained <section> HTML for direct embedding. Uses the 5-char HTML escape (&<>\"'). Always wrap in a sandboxed container if you trust input from third parties."
+    },
+    "source_path": {
+      "type": "string",
+      "description": "Forward-slash relative path to the source note within the vault. In --mode public, this is included; in --mode redacted, it MAY be dropped depending on the manifest config."
+    },
+    "canonical_url": {
+      "type": "string",
+      "description": "Site-relative URL to the rendered note page.",
+      "pattern": "^notes/[a-z0-9-]+\\.html$"
+    },
+    "updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 last-update timestamp. Sourced from frontmatter `updated`, then `date`, then file mtime."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 creation timestamp. Sourced from frontmatter `created_at`, then file birthtime."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Lowercase tags from frontmatter `tags`. Already redacted in --mode redacted."
+    },
+    "keywords": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional. From frontmatter `keywords`. Stronger search match weight than tags."
+    },
+    "tokens": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Approximate token count (text.length / 4 heuristic; real tokenizer planned for 0.4)."
+    },
+    "content_hash": {
+      "type": "string",
+      "description": "Truncated SHA-256 of the chunk text. Stable across rebuilds; safe to cache embeddings against this.",
+      "pattern": "^[0-9a-f]{8,64}$"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": ["public", "private", "team"],
+      "description": "Chunk-level visibility, inherited from the source note. Downstream RAG can filter on this."
+    },
+    "sensitivity": {
+      "type": "string",
+      "enum": ["none", "personal", "credential", "financial", "medical"],
+      "description": "Chunk-level sensitivity, inherited from the source note."
+    },
+    "supersedes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional. doc_ids this chunk's note replaces. Prefer this chunk over those."
+    },
+    "superseded_by": {
+      "type": "string",
+      "description": "Optional. doc_id of the note that supersedes this one. If set, downstream retrievers SHOULD de-prioritize this chunk."
+    }
+  }
+}

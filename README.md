@@ -14,9 +14,33 @@
 1. A **private, browsable dashboard** with real client-side search.
 2. **Retrieval-ready JSONL chunks** with stable IDs, content hashes, and provenance — ready for any RAG pipeline.
 3. **A live MCP server** any agent can attach to (Claude Desktop, Claude Code, Codex CLI, Cursor, Continue, …).
-4. **All the agent-context files at once**: `AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `copilot-instructions.md`, `llms.txt`, `llms-full.txt`, `/.well-known/agent-card.json`.
+4. **All the agent-context files at once**: `AGENTS.md`, `CLAUDE.md`, `.cursorrules`, `copilot-instructions.md`, `llms.txt`, `llms-full.txt`, `/.well-known/agent-card.json`, plus `sitemap.xml` + `feed.xml`.
 
 No service to sign up for. No editor lock-in. No competing format. The vault is just Markdown.
+
+![Dashboard preview](assets/screenshot-dashboard.png)
+
+## Architecture
+
+```mermaid
+flowchart LR
+    V[Markdown vault<br/>YAML frontmatter] --> P[parse + tokenize<br/>extractWikiLinks]
+    P --> F{privacy filter<br/>visibility · sensitivity}
+    F -->|excluded| R[redacted-link<br/>placeholders]
+    F -->|visible| C[chunkNote<br/>+ content_hash]
+    C --> H[/notes/*.html/]
+    C --> J[chunks.jsonl]
+    C --> S[search-index.json]
+    C --> M[manifest.json]
+    C --> L[llms.txt<br/>llms-full.txt<br/>AGENTS.md<br/>agent-card.json<br/>sitemap.xml<br/>feed.xml]
+    J --> MCP{{agent-memory mcp<br/>stdio server}}
+    MCP --> A1[Claude]
+    MCP --> A2[Codex]
+    MCP --> A3[Cursor]
+    MCP --> A4[any MCP client]
+```
+
+One parse pass. One privacy pass. One emit pass. Every agent reads the same artifacts.
 
 ## The 90-second demo
 
@@ -45,6 +69,32 @@ Markdown is the best source format for humans and Git: easy to write, diff, revi
 | **agent-memory-site** | Compiles vault → HTML + JSONL + MCP + AGENTS.md + llms.txt | _is this thing_ |
 
 If you want **live editing in Obsidian piped into Claude**, use MCPVault. If you want **a single bundle you can ship, share, snapshot, and feed every agent**, use this.
+
+## Use cases
+
+| Scenario | What this gives you |
+|---|---|
+| **AI agent handoff memory** | Every session ends with a handoff note in `handoffs/`. Next session, the agent reads them via MCP and picks up cleanly. |
+| **Team agent operating system** | One shared vault. Every agent (yours + your teammates') reads the same `chunks.jsonl`. No format drift. |
+| **Obsidian Publish alternative** | Publish your vault publicly without paying $10/mo, and pick up agent-context files for free. |
+| **Private team dashboard** | `--mode private` build, serve on the LAN or behind SSO. No SaaS. No telemetry. |
+| **Retrieval substrate for a custom agent** | Drop `chunks.jsonl` into LangChain / LlamaIndex / Mem0 / Letta. Each chunk carries `content_hash` so your embedding cache survives note edits to unrelated chunks. |
+| **Public sanitized project logs** | `--mode redacted` + per-note `redact:` deny-list. Push to GitHub Pages without leaking codenames. |
+| **Agent audit trail** | The HTML pages keep provenance. "Where did the agent get that answer?" → click through to the source note. |
+| **AI context portable across tools** | One build → AGENTS.md (Codex/Aider) + CLAUDE.md + .cursorrules + .github/copilot-instructions.md + llms.txt. Write once, every editor sees the same instructions. |
+
+## The bigger picture
+
+AI agents are starting to accumulate durable memory. Most of it is trapped in messy Markdown files, Obsidian vaults, chat exports, and hidden local folders. That memory is hard to inspect, hard to share safely, hard to audit, hard to turn into retrieval, and hard to hand off between tools.
+
+`agent-memory-site` is the **compile step** between that mess and your agents. Markdown stays the source of truth — humans and AI both write it fluently — but every agent ends up reading a clean, privacy-filtered, retrieval-ready bundle.
+
+This repo is the first of a family. Roadmap:
+
+- `agent-memory-lint` — validate memory quality + flag stale notes + catch unmarked secrets
+- `agent-memory-sync` — sync sections across tools (Obsidian ↔ Notion ↔ Linear)
+- `agent-memory-template` — `Use this template` GitHub repo with a starter vault wired to Pages
+- `agent-memory-bench` — eval memory usefulness (retrieval precision over a question bank)
 
 ## Install
 
@@ -153,6 +203,9 @@ site/
 ├── llms.txt                   — Anthropic-spec agent index
 ├── llms-full.txt              — full-text mirror
 ├── AGENTS.md                  — Linux-Foundation agent-context standard
+├── sitemap.xml                — for crawlers and AI agents
+├── feed.xml                   — RSS feed of recent notes
+├── robots.txt                 — points at sitemap + llms.txt
 ├── .well-known/
 │   └── agent-card.json        — agent capability descriptor
 ├── assets/
@@ -161,6 +214,8 @@ site/
 │   └── copy.js
 └── .agent-memory-output       — safety marker for safe re-builds
 ```
+
+The chunk + manifest formats are documented with JSON Schemas at [`docs/schemas/`](docs/schemas/).
 
 Each chunk looks like:
 
@@ -239,6 +294,24 @@ Drop an `agent-memory.config.json` at the project root to override defaults:
 ## How this complements Tolaria / Obsidian
 
 Use Tolaria, Obsidian, Logseq, or your editor of choice to write and maintain Markdown. Use agent-memory-site to compile a portable bundle every agent can read. It is not trying to replace your note editor — it's the build step between your vault and your agents.
+
+## Cookbook
+
+Wiring recipes for every common stack — each one is ≤ 50 lines and ships into a fresh project verbatim:
+
+- [Claude Code (MCP)](docs/cookbook/claude-code.md)
+- [Cursor (MCP)](docs/cookbook/cursor.md)
+- [Codex CLI (MCP)](docs/cookbook/codex.md)
+- [LangChain](docs/cookbook/langchain.md)
+- [LlamaIndex](docs/cookbook/llamaindex.md)
+- [Mem0](docs/cookbook/mem0.md)
+- [Letta / MemGPT](docs/cookbook/letta.md)
+- [OpenAI Assistants / Memory tool](docs/cookbook/openai-memory.md)
+- [GitHub Action — build + deploy your vault on push](docs/cookbook/github-action.md)
+
+## What a note page looks like
+
+![Note page preview](assets/screenshot-note.png)
 
 ## Roadmap
 

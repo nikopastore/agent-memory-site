@@ -138,23 +138,43 @@ export function stripWikiTokens(s: string): string {
   return s.replace(re, (_m, _slug: string, b64: string) => b64decode(b64));
 }
 
-export async function parseVault(source: string): Promise<Note[]> {
+export interface ParseError {
+  file: string;
+  reason: string;
+}
+
+export interface ParseOutcome {
+  notes: Note[];
+  errors: ParseError[];
+}
+
+/**
+ * Parse a vault with full error detail. One bad note no longer kills the
+ * whole run — it's recorded in `errors` and skipped. Use this from validate /
+ * build so users see EVERY issue in one pass.
+ */
+export async function parseVaultWithDetails(source: string): Promise<ParseOutcome> {
   const files = walk(source);
-  const notes = await Promise.all(
-    files.map(async (f): Promise<Note> => {
+  const errors: ParseError[] = [];
+  const results = await Promise.all(
+    files.map(async (f): Promise<Note | null> => {
       const relRaw = path.relative(source, f);
       const rel = normalizePath(relRaw);
       let raw: string;
       try {
         raw = await fs.promises.readFile(f, 'utf8');
       } catch (err) {
-        throw new Error(`Failed to read ${rel}: ${(err as Error).message}`);
+        errors.push({ file: rel, reason: `read failed: ${(err as Error).message}` });
+        return null;
       }
       let parsed: ReturnType<typeof matter>;
       try {
         parsed = matter(raw);
       } catch (err) {
-        throw new Error(`Failed to parse frontmatter in ${rel}: ${(err as Error).message}`);
+        // Trim YAML's multi-line traceback to the first line — it's much more readable.
+        const firstLine = (err as Error).message.split('\n')[0];
+        errors.push({ file: rel, reason: `frontmatter parse failed: ${firstLine}` });
+        return null;
       }
       const category = rel.includes('/') ? slugify(rel.split('/')[0]) : 'root';
       const fallbackTitle = path.basename(f).replace(/\.(md|qmd)$/i, '');
@@ -207,6 +227,7 @@ export async function parseVault(source: string): Promise<Note[]> {
       };
     }),
   );
+  const notes = results.filter((r): r is Note => r !== null);
 
   // Disambiguate slug collisions deterministically by appending a short content hash.
   const slugCounts = new Map<string, number>();
@@ -229,7 +250,22 @@ export async function parseVault(source: string): Promise<Note[]> {
     }
   }
 
-  return notes;
+  return { notes, errors };
+}
+
+/**
+ * Back-compat shim. Logs any per-file parse errors to stderr (so build/serve
+ * users see them) and returns just the successfully parsed notes.
+ *
+ * Prefer `parseVaultWithDetails` if you need to surface errors structurally
+ * (e.g. in `validate --json`).
+ */
+export async function parseVault(source: string): Promise<Note[]> {
+  const outcome = await parseVaultWithDetails(source);
+  for (const e of outcome.errors) {
+    process.stderr.write(`⚠ Skipped ${e.file}: ${e.reason}\n`);
+  }
+  return outcome.notes;
 }
 
 /**

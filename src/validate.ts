@@ -35,7 +35,11 @@ export function validateNotes(notes: Note[]): ValidationIssue[] {
   for (const n of notes) {
     if (!n.meta?.title) issues.push({ severity: 'warn', file: n.relPath, code: 'missing-title', message: 'missing title frontmatter' });
     if (!n.meta?.visibility) issues.push({ severity: 'info', file: n.relPath, code: 'missing-visibility', message: 'missing visibility; defaults private' });
-    if (hasPossibleSecret(n.body)) issues.push({ severity: 'error', file: n.relPath, code: 'possible-secret', message: 'possible secret/token in note body' });
+    // `secret_safe: true` opt-out: for notes ABOUT secrets (docs, command examples,
+    // env-var templates). Use sparingly; real positives are rare and high-value.
+    if (n.meta?.secret_safe !== true && hasPossibleSecret(n.body)) {
+      issues.push({ severity: 'error', file: n.relPath, code: 'possible-secret', message: 'possible secret/token in note body (use `secret_safe: true` in frontmatter to opt-out if this is documentation)' });
+    }
     if (n.body.length > 20000) issues.push({ severity: 'warn', file: n.relPath, code: 'oversized', message: 'oversized note; consider splitting' });
     for (const l of n.links) {
       if (!findTarget(l)) issues.push({ severity: 'warn', file: n.relPath, code: 'broken-link', message: `broken wiki link [[${l}]]` });

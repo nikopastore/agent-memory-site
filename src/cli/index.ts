@@ -4,7 +4,7 @@ import path from 'node:path';
 import http from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { Command, Option } from 'commander';
-import { parseVault } from '../ingest/markdown.js';
+import { parseVault, parseVaultWithDetails } from '../ingest/markdown.js';
 import { buildSite } from '../build/site.js';
 import { assertSafeOutputDir } from '../build/safety.js';
 import { validateNotes } from '../validate.js';
@@ -187,19 +187,32 @@ program
   .option('--json', 'emit issues as JSON')
   .option('--strict', 'exit nonzero on warn or info (default: errors only)')
   .action(async (o) => {
-    const notes = await parseVault(o.source);
+    const { notes, errors } = await parseVaultWithDetails(o.source);
     const issues = validateNotes(notes);
+    // Parse failures surface as severity: error so they always block CI / publish-check.
+    const parseIssues = errors.map((e) => ({
+      severity: 'error' as const,
+      file: e.file,
+      code: 'parse-failed',
+      message: e.reason,
+    }));
+    const allIssues = [...parseIssues, ...issues];
     if (o.json) {
-      console.log(JSON.stringify(issues, null, 2));
+      console.log(JSON.stringify(allIssues, null, 2));
     } else {
-      for (const i of issues) {
+      for (const i of allIssues) {
         const tag = i.severity === 'error' ? red('ERROR') : i.severity === 'warn' ? 'WARN ' : 'INFO ';
         console.log(`${tag} ${i.file} [${i.code}] ${i.message}`);
       }
-      if (!issues.length) console.log(green('No validation issues.'));
+      if (!allIssues.length) console.log(green('No validation issues.'));
+      else {
+        const counts = { error: 0, warn: 0, info: 0 };
+        for (const i of allIssues) counts[i.severity]++;
+        console.log(dim(`\n${notes.length} notes parsed · ${counts.error} errors · ${counts.warn} warnings · ${counts.info} info`));
+      }
     }
-    const hasError = issues.some((i) => i.severity === 'error');
-    const hasWarn = issues.some((i) => i.severity === 'warn');
+    const hasError = allIssues.some((i) => i.severity === 'error');
+    const hasWarn = allIssues.some((i) => i.severity === 'warn');
     if (hasError || (o.strict && hasWarn)) process.exitCode = 1;
   });
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { extractWikiLinks, parseVault, resolveWikiTokens, slugify, tokenizeWikiLinks } from '../src/ingest/markdown.js';
+import { extractWikiLinks, parseVault, parseVaultWithDetails, resolveWikiTokens, slugify, tokenizeWikiLinks } from '../src/ingest/markdown.js';
 import { assertSafeOutputDir } from '../src/build/safety.js';
 import { buildSite } from '../src/build/site.js';
 import { includeNote, redactText, redactDeep } from '../src/build/privacy.js';
@@ -286,10 +286,48 @@ describe('basics', () => {
     expect(slugs.size).toBe(notes.length);
   });
 
-  it('parseVault throws a helpful error on malformed YAML frontmatter', async () => {
+  it('parseVault skips notes with malformed YAML frontmatter and warns on stderr instead of throwing', async () => {
+    // A single bad note should never kill the whole vault build (regression: 0.3.0
+    // crashed on the first malformed file, dogfooding hit this on a real vault of 441 notes).
     const source = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-memory-badyaml-'));
-    fs.writeFileSync(path.join(source, 'bad.md'), '---\ntitle: "broken\n---\n\nBody.');
-    await expect(parseVault(source)).rejects.toThrow(/frontmatter in bad\.md/);
+    fs.writeFileSync(path.join(source, 'good.md'), '---\ntitle: Good\nvisibility: public\n---\n\nfine');
+    // Nested colons confuse js-yaml — this is the shape that actually throws.
+    fs.writeFileSync(path.join(source, 'bad.md'), '---\ntitle: foo: bar: baz\n---\nbody');
+    const notes = await parseVault(source);
+    // Good note survives; bad is skipped.
+    expect(notes.map((n) => n.title)).toEqual(['Good']);
+  });
+
+  it('parseVaultWithDetails surfaces malformed-YAML errors structurally', async () => {
+    const source = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-memory-pwd-'));
+    fs.writeFileSync(path.join(source, 'good.md'), '---\ntitle: Goodly\nvisibility: public\n---\n\nfine');
+    // Different malformed shape than the previous test to avoid any module-level
+    // YAML caching collisions across tests.
+    fs.writeFileSync(path.join(source, 'bad.md'), '---\nfoo: bar: baz: qux\n---\nbody');
+    const { notes, errors } = await parseVaultWithDetails(source);
+    expect(notes.map((n) => n.title)).toEqual(['Goodly']);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].file).toBe('bad.md');
+    expect(errors[0].reason).toMatch(/frontmatter parse failed/);
+  });
+
+  it('validate respects secret_safe: true as an opt-out for documentation notes', async () => {
+    const source = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-memory-secretsafe-'));
+    // A note that documents secrets should be able to opt out of the warning.
+    fs.writeFileSync(
+      path.join(source, 'docs.md'),
+      '---\ntitle: Credential management docs\nvisibility: private\nsecret_safe: true\n---\n\napi_key: ${OPENAI_API_KEY}\npassword = please_set_this_in_env_vars',
+    );
+    // A real positive without the flag should still be flagged.
+    fs.writeFileSync(
+      path.join(source, 'real.md'),
+      '---\ntitle: Real positive\nvisibility: private\n---\n\npassword = real-leaked-credential-here',
+    );
+    const notes = await parseVault(source);
+    const issues = validateNotes(notes);
+    const secretIssues = issues.filter((i) => i.code === 'possible-secret');
+    expect(secretIssues).toHaveLength(1);
+    expect(secretIssues[0].file).toBe('real.md');
   });
 
   it('build writes the marker file and a 404', async () => {

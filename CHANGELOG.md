@@ -3,6 +3,22 @@
 All notable changes to **agent-memory-site** are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [SemVer](https://semver.org/).
 
+## [0.3.1] - 2026-05-25
+
+### Fixed
+
+- **`validate` / `build` no longer crash on the first malformed YAML frontmatter.** Bad notes are now skipped, accumulated, and reported in a single pass with file context. Hit while dogfooding on a real 441-note vault that contained six imported notes with broken frontmatter. ([`#parseVault-skip-not-throw`](https://github.com/nikopastore/agent-memory-site))
+
+### Added
+
+- **`parseVaultWithDetails(source)`** returns `{ notes, errors }` so callers can surface per-file failures structurally. `validate` uses it to emit `code: parse-failed` errors in JSON output. The legacy `parseVault(source)` still returns `Note[]` and logs skip-warnings to stderr.
+- **`validate` summary line.** After issues, prints `N notes parsed · X errors · Y warnings · Z info`. Makes large-vault runs scannable.
+- **`secret_safe: true` frontmatter opt-out.** For notes that *document* secrets (env-var templates, credential management procedures, command examples), set this to suppress the `possible-secret` validation error. Real positives without the flag remain blocked.
+
+### Tests
+
+- Coverage for parseVault skip-not-throw, parseVaultWithDetails structural errors, and `secret_safe` opt-out (3 new tests, 31 total passing).
+
 ## [0.3.0] - 2026-05-24
 
 ### Added

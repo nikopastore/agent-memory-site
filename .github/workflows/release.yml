@@ -53,7 +53,9 @@ jobs:
           if [ "$tag" = "" ] || [ "$tag" = "$GITHUB_REF" ]; then
             tag="${{ github.event.inputs.tag }}"
           fi
-          gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
-            gh release create "$tag" --repo "$GITHUB_REPOSITORY" \
+          # `--repo` is incompatible with `--notes-from-tag` (gh 2.86 known limit).
+          # GH_TOKEN already scopes to this repo, so omit --repo.
+          gh release view "$tag" >/dev/null 2>&1 || \
+            gh release create "$tag" \
               --title "$tag" \
-              --notes-from-tag
+              --generate-notes
